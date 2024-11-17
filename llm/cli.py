@@ -53,6 +53,23 @@ warnings.simplefilter("ignore", ResourceWarning)
 DEFAULT_TEMPLATE = "prompt: "
 
 
+def resolve_fragments(fragments):
+    # These can be URLs or paths
+    resolved = []
+    for fragment in fragments:
+        if fragment.startswith("http://") or fragment.startswith("https://"):
+            response = httpx.get(fragment, follow_redirects=True)
+            response.raise_for_status()
+            resolved.append(response.text)
+        elif fragment == "-":
+            resolved.append(sys.stdin.read())
+        elif pathlib.Path(fragment).exists():
+            resolved.append(pathlib.Path(fragment).read_text())
+        else:
+            raise click.ClickException(f"Fragment {fragment} not found")
+    return resolved
+
+
 class AttachmentType(click.ParamType):
     name = "attachment"
 
@@ -174,6 +191,16 @@ def cli():
     multiple=True,
     help="key/value options for the model",
 )
+@click.option(
+    "fragments", "-f", "--fragment", multiple=True, help="Fragment to add to prompt"
+)
+@click.option(
+    "system_fragments",
+    "--sf",
+    "--system-fragment",
+    multiple=True,
+    help="Fragment to add to system prompt",
+)
 @click.option("-t", "--template", help="Template to use")
 @click.option(
     "-p",
@@ -209,6 +236,8 @@ def prompt(
     attachments,
     attachment_types,
     options,
+    fragments,
+    system_fragments,
     template,
     param,
     no_stream,
@@ -266,6 +295,7 @@ def prompt(
             and sys.stdin.isatty()
             and not attachments
             and not attachment_types
+            and not fragments
         ):
             # Hang waiting for input to stdin (unless --save)
             prompt = sys.stdin.read()
@@ -377,6 +407,9 @@ def prompt(
 
     prompt = read_prompt()
 
+    fragments = resolve_fragments(fragments)
+    system_fragments = resolve_fragments(system_fragments)
+
     prompt_method = model.prompt
     if conversation:
         prompt_method = conversation.prompt
@@ -388,8 +421,10 @@ def prompt(
                 if should_stream:
                     async for chunk in prompt_method(
                         prompt,
+                        fragments=fragments,
                         attachments=resolved_attachments,
                         system=system,
+                        system_fragments=system_fragments,
                         **validated_options,
                     ):
                         print(chunk, end="")
@@ -398,8 +433,10 @@ def prompt(
                 else:
                     response = prompt_method(
                         prompt,
+                        fragments=fragments,
                         attachments=resolved_attachments,
                         system=system,
+                        system_fragments=system_fragments,
                         **validated_options,
                     )
                     print(await response.text())
@@ -408,8 +445,10 @@ def prompt(
         else:
             response = prompt_method(
                 prompt,
+                fragments=fragments,
                 attachments=resolved_attachments,
                 system=system,
+                system_fragments=system_fragments,
                 **validated_options,
             )
             if should_stream:
