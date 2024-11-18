@@ -468,7 +468,10 @@ def prompt(
             else:
                 print(response.text())
     except Exception as ex:
-        raise click.ClickException(str(ex))
+        if sys._called_from_test:
+            raise
+        else:
+            raise click.ClickException(str(ex))
 
     # Log to the database
     if (logs_on() or log) and not no_log and not async_:
