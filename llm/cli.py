@@ -508,7 +508,7 @@ def prompt(
             else:
                 print(response.text())
     except Exception as ex:
-        if sys._called_from_test:
+        if getattr(sys, "_called_from_test", False):
             raise
         else:
             raise click.ClickException(str(ex))
