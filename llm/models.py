@@ -410,9 +410,6 @@ class Response(_BaseResponse):
         self._force()
         return self._start_utcnow.isoformat() if self._start_utcnow else ""
 
-    def text_or_raise(self) -> str:
-        return self.text()
-
     def __iter__(self) -> Iterator[str]:
         self._start = time.monotonic()
         self._start_utcnow = datetime.datetime.utcnow()
