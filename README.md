@@ -66,6 +66,18 @@ llm "Five cute names for a pet penguin"
 ```
 Read the [usage instructions](https://llm.datasette.io/en/stable/usage.html) for more.
 
+## Setting your default model
+
+By default, LLM uses GPT-3.5-turbo. To see available models and change your default:
+
+```bash
+# List available models
+llm models
+
+# Set a different default model
+llm models default gpt-4-turbo
+```
+
 ## Installing a model that runs on your own machine
 
 [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html) can add support for alternative models, including models that run on your own machine.
